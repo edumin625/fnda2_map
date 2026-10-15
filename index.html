@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>부산 주요 수퍼마켓 & 대형마트 매장 현황 지도</title>
+  
+  <!-- Open Graph / Meta -->
+  <meta name="description" content="부산 지역 주요 수퍼마켓 및 대형마트(이마트, 홈플러스, 롯데마트, 메가마트 등) 107개 매장 위치와 상세 정보를 제공하는 인터랙티브 지도 대시보드">
+  <meta property="og:title" content="부산 주요 수퍼마켓 & 대형마트 매장 지도">
+  <meta property="og:description" content="부산 107개 매장 무료 인터랙티브 지도 대시보드">
+
+  <!-- Leaflet CSS (Free & Open Source Map) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  
+  <!-- Leaflet MarkerCluster CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+  <!-- App Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- 1. 헤더 영역 -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="brand-logo-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      </div>
+      <div class="header-title-wrap">
+        <h1>부산 수퍼마켓 & 대형마트 지도 <span class="sub-badge">부산광역시</span></h1>
+      </div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-pill">
+        <span class="indicator-dot"></span>
+        <span>등록 매장: <strong id="header-total-count">107</strong>개</span>
+      </div>
+      <button id="btn-toggle-sidebar" class="btn-sidebar-toggle" aria-label="목록 패널 열기/닫기">
+        목록 접기
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. 메인 컨테이너 (사이드바 + 지도) -->
+  <div class="app-container">
+
+    <!-- 좌측 사이드바 패널 -->
+    <aside id="sidebar-panel" class="sidebar-panel">
+      
+      <!-- 상단 필터 & 검색 컨트롤 -->
+      <div class="sidebar-controls">
+        
+        <!-- 실시간 텍스트 검색창 -->
+        <div class="search-box-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="search-input" class="search-input" 
+                 placeholder="매장명, 지점명, 도로명 주소 검색..." 
+                 autocomplete="off" spellcheck="false">
+          <button type="button" id="search-clear-btn" class="search-clear-btn" aria-label="검색어 지우기">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 브랜드 필터 칩 영역 -->
+        <div>
+          <div class="filter-group-label">
+            <span>브랜드 필터</span>
+            <span id="btn-reset-filters" class="filter-reset-link">초기화</span>
+          </div>
+          <div id="brand-chips-container" class="brand-chips-grid">
+            <!-- 자바스크립트로 칩 렌더링 -->
+          </div>
+        </div>
+
+        <!-- 지역(구/군) 필터 드롭다운 -->
+        <div>
+          <div class="filter-group-label">
+            <span>지역 (구/군)</span>
+          </div>
+          <div class="region-select-wrap">
+            <select id="gu-select" class="region-select">
+              <option value="all">부산광역시 전체 구/군</option>
+              <!-- 자바스크립트로 구/군 옵션 추가 -->
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 리스트 요약 바 -->
+      <div class="list-summary-bar">
+        <span>검색 결과: <strong id="result-count">107</strong>개 매장</span>
+        <span id="current-filter-desc">전체 매장</span>
+      </div>
+
+      <!-- 매장 카드 스크롤 목록 -->
+      <div id="store-list-container" class="store-list-container" role="feed" aria-label="매장 목록">
+        <!-- 자바스크립트로 매장 카드 목록 렌더링 -->
+      </div>
+
+    </aside>
+
+    <!-- 우측 지도 패널 -->
+    <main class="map-panel">
+      <!-- Leaflet 지도 컨테이너 -->
+      <div id="map"></div>
+
+      <!-- 지도 위 플로팅 컨트롤 -->
+      <div class="map-floating-controls">
+        <button id="btn-reset-map" class="map-control-btn" title="부산 전도 보기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          <span>부산 전도</span>
+        </button>
+        <button id="btn-my-location" class="map-control-btn" title="내 위치 찾기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="12 2 15 8 22 9 17 14 18 21 12 18 6 21 7 14 2 9 9 8 12 2"></polygon>
+          </svg>
+          <span>내 위치</span>
+        </button>
+      </div>
+
+      <!-- 지도 우측 하단 범례 패널 -->
+      <div class="map-legend-panel">
+        <div class="legend-title">매장 브랜드 범례</div>
+        <div class="legend-item"><span class="legend-color-dot" style="background:#f59e0b"></span> 이마트 / 트레이더스</div>
+        <div class="legend-item"><span class="legend-color-dot" style="background:#dc2626"></span> 홈플러스</div>
+        <div class="legend-item"><span class="legend-color-dot" style="background:#e11d48"></span> 롯데마트</div>
+        <div class="legend-item"><span class="legend-color-dot" style="background:#2563eb"></span> 메가마트</div>
+        <div class="legend-item"><span class="legend-color-dot" style="background:#059669"></span> 농협 하나로마트</div>
+        <div class="legend-item"><span class="legend-color-dot" style="background:#ea580c"></span> 서원유통 탑마트</div>
+        <div class="legend-item"><span class="legend-color-dot" style="background:#8b5cf6"></span> 기타 마트</div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- 알림 토스트 (주소 복사 알림 등) -->
+  <div id="toast-notice" class="toast-notice" role="status" aria-live="polite">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+    <span id="toast-message">주소가 클립보드에 복사되었습니다.</span>
+  </div>
+
+  <!-- Leaflet JS (Free & Open Source) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Leaflet MarkerCluster JS -->
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <!-- 내장된 매장 데이터 (No Upload Required) -->
+  <script src="stores_data.js"></script>
+
+  <!-- 바닐라 자바스크립트 애플리케이션 로직 -->
+  <script src="app.js"></script>
+
+</body>
+</html>
